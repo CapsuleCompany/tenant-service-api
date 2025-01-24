@@ -1,51 +1,64 @@
-from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
-from .models import Service, Booking, Payment
-from .serializers import ServiceSerializer, BookingSerializer, PaymentSerializer
+from rest_framework import status
+from .models import Provider, Service
+from .serializers import ProviderSerializer, ServiceSerializer
 
 
-class ServiceViewSet(viewsets.ModelViewSet):
-    serializer_class = ServiceSerializer
+class ProviderView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user_id = self.request.user.user_id
-        queryset = Service.objects.filter(provider_id=user_id)
-        if not queryset.exists():
-            return Service.objects.none()
-        return queryset
+    def get(self, request):
+        user_id = request.user.user_id  # Assume user_id is populated via JWT
+        providers = Provider.objects.filter(user_id=user_id)
+        if not providers.exists():
+            return Response([], status=status.HTTP_404_NOT_FOUND)
+        serializer = ProviderSerializer(providers, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def perform_create(self, serializer):
-        # Set the provider_id to the logged-in user's ID
-        user_id = self.request.user.user_id
-        serializer.save(provider_id=user_id)
+    def post(self, request):
+        user_id = request.user.user_id
+        data = request.data.copy()
+        data['user_id'] = user_id
+        serializer = ProviderSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BookingViewSet(viewsets.ModelViewSet):
-    serializer_class = BookingSerializer
+class ServiceView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        # Allow users to view bookings where they are the client
-        user_id = self.request.user.user_id
-        return Booking.objects.filter(client_id=user_id)
+    def get(self, request, provider_id):
+        user_id = request.user.user_id
+        try:
+            provider = Provider.objects.get(id=provider_id, user_id=user_id)
+        except Provider.DoesNotExist:
+            return Response(
+                [],
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-    def perform_create(self, serializer):
-        # Set the client_id to the logged-in user's ID
-        user_id = self.request.user.user_id
+        services = Service.objects.filter(provider=provider)
+        serializer = ServiceSerializer(services, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        service = serializer.validated_data['service']
-        if service.provider_id == user_id:
-            raise PermissionDenied("You cannot book your own service.")
-        serializer.save(client_id=user_id)
+    def post(self, request, provider_id):
+        user_id = request.user.user_id
+        try:
+            provider = Provider.objects.get(id=provider_id, user_id=user_id)
+        except Provider.DoesNotExist:
+            return Response(
+                [],
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-
-class PaymentViewSet(viewsets.ModelViewSet):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Allow users to view payments for bookings they made
-        user_id = self.request.user.user_id
-        return Payment.objects.filter(booking__client_id=user_id)
+        data = request.data.copy()
+        data['provider'] = provider.id
+        serializer = ServiceSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
