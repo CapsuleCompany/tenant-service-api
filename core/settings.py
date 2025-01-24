@@ -27,8 +27,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    'drf_spectacular',
-    "service"
+    "drf_spectacular",
+    "service",
 ]
 
 MIDDLEWARE = [
@@ -115,7 +115,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "service.authentication.CustomJWTAuthentication",
     ],
@@ -135,11 +135,11 @@ REST_FRAMEWORK = {
 # }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Capsule Service API',
-    'DESCRIPTION': 'Documentation for Capsule Service API',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    "TITLE": "Capsule Service API",
+    "DESCRIPTION": "Documentation for Capsule Service API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
 }
 
 
