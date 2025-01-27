@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from .models import Provider, Service, ServiceOption, ServiceOptionValue
+from .models import (
+    Provider,
+    ProviderTeam,
+    ProviderLocation,
+    Service,
+    ServiceLocation,
+    ServiceOption,
+    ServiceOptionValue,
+)
 
 
 class ProviderSerializer(serializers.ModelSerializer):
@@ -12,11 +20,50 @@ class ProviderSerializer(serializers.ModelSerializer):
             "logo",
             "contact_email",
             "phone_number",
-            "address",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class ProviderTeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProviderTeam
+        fields = [
+            "id",
+            "provider",
+            "user_id",
+            "role",
+            "added_at",
+        ]
+        read_only_fields = ["id", "added_at"]
+
+
+class ProviderLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProviderLocation
+        fields = [
+            "id",
+            "provider",
+            "location_id",
+            "address",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class ServiceLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceLocation
+        fields = [
+            "id",
+            "service",
+            "location",
+            "service_range_mi",
+            "availability_start",
+            "availability_end",
+        ]
+        read_only_fields = ["id"]
 
 
 class ServiceOptionValueSerializer(serializers.ModelSerializer):
@@ -35,10 +82,7 @@ class ServiceOptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceOption
-        fields = "__all__"
-        extra_kwargs = {
-            "service": {"required": True},
-        }
+        fields = ["id", "service", "name", "is_required", "max_selections", "values"]
         read_only_fields = ["id"]
 
     def create(self, validated_data):
@@ -82,17 +126,13 @@ class ServiceSerializer(serializers.ModelSerializer):
             "provider",
             "name",
             "category",
-            "predicted_category",
             "description",
             "price",
             "is_available",
-            "availability_start",
-            "availability_end",
             "max_clients_per_slot",
             "image",
-            "location",
-            "service_range_mi",
             "duration_minutes",
+            "is_public",
             "options",
             "created_at",
             "updated_at",
@@ -115,28 +155,15 @@ class ServiceSerializer(serializers.ModelSerializer):
         options_data = validated_data.pop("options", [])
         instance.name = validated_data.get("name", instance.name)
         instance.category = validated_data.get("category", instance.category)
-        instance.predicted_category = validated_data.get(
-            "predicted_category", instance.predicted_category
-        )
         instance.description = validated_data.get("description", instance.description)
         instance.price = validated_data.get("price", instance.price)
         instance.is_available = validated_data.get(
             "is_available", instance.is_available
         )
-        instance.availability_start = validated_data.get(
-            "availability_start", instance.availability_start
-        )
-        instance.availability_end = validated_data.get(
-            "availability_end", instance.availability_end
-        )
         instance.max_clients_per_slot = validated_data.get(
             "max_clients_per_slot", instance.max_clients_per_slot
         )
         instance.image = validated_data.get("image", instance.image)
-        instance.location = validated_data.get("location", instance.location)
-        instance.service_range_mi = validated_data.get(
-            "service_range_mi", instance.service_range_mi
-        )
         instance.duration_minutes = validated_data.get(
             "duration_minutes", instance.duration_minutes
         )

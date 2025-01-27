@@ -1,6 +1,15 @@
+import uuid
 from django.core.management.base import BaseCommand
 from model_bakery import baker
-from service.models import Provider, Service, ServiceOption, ServiceOptionValue
+from service.models import (
+    Provider,
+    ProviderLocation,
+    ProviderTeam,
+    Service,
+    ServiceLocation,
+    ServiceOption,
+    ServiceOptionValue,
+)
 from . import progress_bar
 
 
@@ -8,10 +17,13 @@ class Command(BaseCommand):
     help = "Populate the database with sample providers, services, and options using bakery."
 
     def handle(self, *args, **options):
-        # Delete existing data to avoid duplicates
+        # Clear existing data
         self.stdout.write("Clearing existing data...")
         Provider.objects.all().delete()
+        ProviderLocation.objects.all().delete()
+        ProviderTeam.objects.all().delete()
         Service.objects.all().delete()
+        ServiceLocation.objects.all().delete()
         ServiceOption.objects.all().delete()
         ServiceOptionValue.objects.all().delete()
 
@@ -40,13 +52,34 @@ class Command(BaseCommand):
             },
         ]
 
-        # Populate providers with progress bar
         self.stdout.write("Populating providers...")
         provider_instances = []
         for provider_data in progress_bar(
             providers, prefix="Providers", suffix="Complete", length=50
         ):
             provider_instances.append(baker.make(Provider, **provider_data))
+
+        # Define provider locations
+        self.stdout.write("Populating provider locations...")
+        provider_locations = []
+        for provider in provider_instances:
+            location = baker.make(
+                ProviderLocation,
+                provider=provider,
+                location_id=uuid.uuid4(),
+                address=f"{provider.name} Address",
+            )
+            provider_locations.append(location)
+
+        # Define provider teams
+        self.stdout.write("Populating provider teams...")
+        for provider in provider_instances:
+            baker.make(
+                ProviderTeam,
+                provider=provider,
+                user_id=provider.user_id,
+                role="owner",
+            )
 
         # Define services
         services = [
@@ -94,13 +127,25 @@ class Command(BaseCommand):
             },
         ]
 
-        # Populate services with progress bar
         self.stdout.write("Populating services...")
         service_instances = []
         for service_data in progress_bar(
             services, prefix="Services", suffix="Complete", length=50
         ):
             service_instances.append(baker.make(Service, **service_data))
+
+        # Define service locations
+        self.stdout.write("Populating service locations...")
+        for service in service_instances:
+            location = next(
+                loc for loc in provider_locations if loc.provider == service.provider
+            )
+            baker.make(
+                ServiceLocation,
+                service=service,
+                location=location,
+                service_range_mi=15.0,
+            )
 
         # Define options and values
         options_and_values = [
@@ -138,7 +183,6 @@ class Command(BaseCommand):
             },
         ]
 
-        # Populate options and values with progress bar
         self.stdout.write("Populating options and values...")
         for option_data in progress_bar(
             options_and_values, prefix="Options", suffix="Complete", length=50

@@ -8,8 +8,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from .views import (
     ProviderListCreateView,
+    ProviderLocationListCreateView,
     ServiceListView,
     ServiceDetailView,
+    ServiceLocationListCreateView,
     ServiceOptionListView,
     ServiceOptionDetailView,
     ServiceOptionValueListView,
@@ -23,39 +25,49 @@ urlpatterns = [
         ProviderListCreateView.as_view(),
         name="provider-list-create",
     ),
+    path(
+        "<uuid:provider_id>/locations/",
+        ProviderLocationListCreateView.as_view(),
+        name="provider-location-list-create",
+    ),
 
     # Services
     path(
-        "<int:provider_id>/",
+        "<uuid:provider_id>/services/",
         ServiceListView.as_view(),
         name="provider-service-list",
     ),
     path(
-        "<int:provider_id>/services/<int:id>/",
+        "<uuid:provider_id>/services/<uuid:service_id>/",
         ServiceDetailView.as_view(),
         name="service-detail",
+    ),
+    path(
+        "<uuid:provider_id>/services/<uuid:service_id>/locations/",
+        ServiceLocationListCreateView.as_view(),
+        name="service-location-list-create",
     ),
 
     # Service Options
     path(
-        "<int:provider_id>/services/<int:service_id>/options/",
+        "<uuid:provider_id>/services/<uuid:service_id>/options/",
         ServiceOptionListView.as_view(),
         name="service-option-list-create",
     ),
     path(
-        "<int:provider_id>/services/<int:service_id>/options/<int:option_id>/",
+        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/",
         ServiceOptionDetailView.as_view(),
         name="service-option-detail",
     ),
 
     # Service Option Values
     path(
-        "<int:provider_id>/services/<int:service_id>/options/<int:option_id>/values/",
+        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/values/",
         ServiceOptionValueListView.as_view(),
         name="service-option-value-list-create",
     ),
     path(
-        "<int:provider_id>/services/<int:service_id>/options/<int:option_id>/values/<int:value_id>/",
+        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/values/<uuid:value_id>/",
         ServiceOptionValueDetailView.as_view(),
         name="service-option-value-detail",
     ),

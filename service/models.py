@@ -1,15 +1,42 @@
 from django.db import models
+import uuid
 
 
-class Provider(models.Model):
+class BaseModel(models.Model):
     """
-    Represents a service provider managed by a user.
-    Since users are managed outside this microservice, we rely on `user_id` from JWT.
+    Base model with commonly needed fields for all models to inherit.
     """
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="Unique identifier for each record."
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="The timestamp when this record was created."
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="The timestamp when this record was last updated."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates whether this record is active or not."
+    )
 
+    class Meta:
+        abstract = True
+        ordering = ['-created_at']
+
+
+class Provider(BaseModel):
+    """
+    Represents a service provider managed by a team of users.
+    """
     user_id = models.CharField(
         max_length=255,
-        help_text="The ID of the user managing this provider (obtained from JWT).",
+        help_text="The ID of the primary user managing this provider (obtained from JWT).",
     )
     name = models.CharField(
         max_length=255, help_text="Name of the provider (e.g., business name)."
@@ -26,23 +53,69 @@ class Provider(models.Model):
     phone_number = models.CharField(
         max_length=15, blank=True, help_text="Contact phone number for the provider."
     )
-    address = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="A reference to the provider's primary address in the location microservice.",
+    is_disabled = models.BooleanField(
+        default=False, help_text="Indicates whether the provider is disabled."
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
 
 
-class Service(models.Model):
+class ProviderTeam(BaseModel):
+    """
+    Represents a team member with specific roles for a provider.
+    """
+    provider = models.ForeignKey(
+        Provider,
+        on_delete=models.CASCADE,
+        related_name="team_members",
+        help_text="The provider this team member belongs to.",
+    )
+    user_id = models.CharField(
+        max_length=255,
+        help_text="The ID of the user (from the user microservice).",
+    )
+    ROLE_CHOICES = [
+        ("owner", "Owner"),
+        ("admin", "Admin"),
+        ("staff", "Staff"),
+    ]
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        default="staff",
+        help_text="Role of the team member within the provider.",
+    )
+
+    def __str__(self):
+        return f"{self.user_id} ({self.role}) - {self.provider.name}"
+
+
+class ProviderLocation(BaseModel):
+    """
+    Represents a location associated with a provider.
+    """
+    provider = models.ForeignKey(
+        Provider,
+        on_delete=models.CASCADE,
+        related_name="locations",
+        help_text="The provider this location belongs to.",
+    )
+    location_id = models.UUIDField(
+        help_text="A reference to the location in the location service."
+    )
+    address = models.TextField(
+        blank=True, help_text="Human-readable address for the location."
+    )
+
+    def __str__(self):
+        return f"Location {self.location_id} for {self.provider.name}"
+
+
+class Service(BaseModel):
     """
     Represents a service offered by a provider.
     """
-
     provider = models.ForeignKey(
         Provider,
         on_delete=models.CASCADE,
@@ -53,23 +126,12 @@ class Service(models.Model):
     category = models.CharField(
         max_length=50, default="other", help_text="Category of the service."
     )
-    predicted_category = models.CharField(
-        max_length=50,
-        blank=True,
-        help_text="Category suggested by AI (can be overridden manually).",
-    )
     description = models.TextField(blank=True, help_text="Description of the service.")
     price = models.DecimalField(
         max_digits=10, decimal_places=2, help_text="Price of the service."
     )
     is_available = models.BooleanField(
         default=True, help_text="Indicates whether the service is available."
-    )
-    availability_start = models.TimeField(
-        null=True, blank=True, help_text="Service availability start time."
-    )
-    availability_end = models.TimeField(
-        null=True, blank=True, help_text="Service availability end time."
     )
     max_clients_per_slot = models.PositiveIntegerField(
         default=1, help_text="Maximum number of clients allowed per time slot."
@@ -78,34 +140,52 @@ class Service(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text="Image representing the service.",
-    )
-    location = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="Reference to the service location in the location microservice.",
-    )
-    service_range_mi = models.FloatField(
-        null=True,
-        blank=True,
-        help_text="Service range in miles from the specified location.",
+        help_text="Image representing the service."
     )
     duration_minutes = models.PositiveIntegerField(
         null=True, blank=True, help_text="Duration of the service in minutes."
     )
     is_public = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
 
 
-class ServiceOption(models.Model):
+class ServiceLocation(BaseModel):
+    """
+    Represents a specific location where a service is offered and its range.
+    """
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        related_name="service_locations",
+        help_text="The service offered at this location.",
+    )
+    location = models.ForeignKey(
+        ProviderLocation,
+        on_delete=models.CASCADE,
+        related_name="service_locations",
+        help_text="The location where this service is available.",
+    )
+    service_range_mi = models.FloatField(
+        default=10.0,
+        help_text="Service range in miles from this location."
+    )
+    availability_start = models.TimeField(
+        null=True, blank=True, help_text="Service availability start time."
+    )
+    availability_end = models.TimeField(
+        null=True, blank=True, help_text="Service availability end time."
+    )
+
+    def __str__(self):
+        return f"{self.service.name} at {self.location}"
+
+
+class ServiceOption(BaseModel):
     """
     Represents customizable options for a service.
     """
-
     service = models.ForeignKey(
         Service, on_delete=models.CASCADE, related_name="options"
     )
@@ -116,20 +196,17 @@ class ServiceOption(models.Model):
         default=False, help_text="Indicates if this option is required."
     )
     max_selections = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Maximum number of selections allowed for this option.",
+        null=True, blank=True, help_text="Maximum number of selections allowed for this option."
     )
 
     def __str__(self):
         return f"{self.name} (Service: {self.service.name})"
 
 
-class ServiceOptionValue(models.Model):
+class ServiceOptionValue(BaseModel):
     """
     Represents individual values for a service option.
     """
-
     option = models.ForeignKey(
         ServiceOption, on_delete=models.CASCADE, related_name="values"
     )
@@ -140,7 +217,7 @@ class ServiceOptionValue(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0.00,
-        help_text="Additional price for this option value.",
+        help_text="Additional price for this option value."
     )
 
     def __str__(self):
