@@ -56,12 +56,21 @@ class ServiceListView(generics.ListAPIView):
 class ServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific service.
-    Only the provider or carrier can update or delete a service.
+    Unauthenticated users can retrieve the service details.
+    Authenticated providers or carriers can perform CRUD operations.
     """
     serializer_class = ServiceSerializer
-    permission_classes = [IsProviderOrCarrier]
+    lookup_field = "id"
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            # Allow unauthenticated users to view service details
+            return [permissions.AllowAny()]
+        # Require authentication for update, delete, or other modifications
+        return [IsProviderOrCarrier()]
 
     def get_queryset(self):
+        # Filter services by provider and ID
         return Service.objects.filter(provider_id=self.kwargs["provider_id"])
 
 
@@ -90,10 +99,17 @@ class ServiceOptionListView(generics.ListCreateAPIView):
 class ServiceOptionDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific service option.
-    Only the provider or carrier can update or delete an option.
+    Unauthenticated users can retrieve the option details.
+    Authenticated providers or carriers can perform CRUD operations.
     """
     serializer_class = ServiceOptionSerializer
-    permission_classes = [IsProviderOrCarrier]
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            # Allow unauthenticated users to view option details
+            return [permissions.AllowAny()]
+        # Require authentication for update, delete, or other modifications
+        return [IsProviderOrCarrier()]
 
     def get_queryset(self):
         return ServiceOption.objects.filter(service_id=self.kwargs["service_id"])
@@ -124,10 +140,17 @@ class ServiceOptionValueListView(generics.ListCreateAPIView):
 class ServiceOptionValueDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific service option value.
-    Only the provider or carrier can update or delete a value.
+    Unauthenticated users can retrieve the value details.
+    Authenticated providers or carriers can perform CRUD operations.
     """
     serializer_class = ServiceOptionValueSerializer
-    permission_classes = [IsProviderOrCarrier]
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            # Allow unauthenticated users to view value details
+            return [permissions.AllowAny()]
+        # Require authentication for update, delete, or other modifications
+        return [IsProviderOrCarrier()]
 
     def get_queryset(self):
         return ServiceOptionValue.objects.filter(option_id=self.kwargs["option_id"])

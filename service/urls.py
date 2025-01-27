@@ -8,10 +8,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from .views import (
     ProviderListCreateView,
-    ServiceListCreateView,
-    ServiceOptionListCreateView,
+    ServiceListView,
+    ServiceDetailView,
+    ServiceOptionListView,
     ServiceOptionDetailView,
-    ServiceOptionValueListCreateView,
+    ServiceOptionValueListView,
     ServiceOptionValueDetailView,
 )
 
@@ -26,14 +27,19 @@ urlpatterns = [
     # Services
     path(
         "<int:provider_id>/",
-        ServiceListCreateView.as_view(),
-        name="provider-service-list-create",
+        ServiceListView.as_view(),
+        name="provider-service-list",
+    ),
+    path(
+        "<int:provider_id>/services/<int:id>/",
+        ServiceDetailView.as_view(),
+        name="service-detail",
     ),
 
     # Service Options
     path(
-        "<int:provider_id>/services/<int:service_id>/",
-        ServiceOptionListCreateView.as_view(),
+        "<int:provider_id>/services/<int:service_id>/options/",
+        ServiceOptionListView.as_view(),
         name="service-option-list-create",
     ),
     path(
@@ -45,7 +51,7 @@ urlpatterns = [
     # Service Option Values
     path(
         "<int:provider_id>/services/<int:service_id>/options/<int:option_id>/values/",
-        ServiceOptionValueListCreateView.as_view(),
+        ServiceOptionValueListView.as_view(),
         name="service-option-value-list-create",
     ),
     path(
