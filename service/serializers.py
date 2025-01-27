@@ -7,7 +7,6 @@ class ProviderSerializer(serializers.ModelSerializer):
         model = Provider
         fields = [
             "id",
-            "user_id",  # This will be filled from the JWT and not manually inputted
             "name",
             "description",
             "logo",

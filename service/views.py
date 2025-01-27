@@ -1,3 +1,7 @@
+from rest_framework import generics, permissions
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from .models import Provider, Service, ServiceOption, ServiceOptionValue
 from .serializers import (
     ProviderSerializer,
@@ -5,200 +9,125 @@ from .serializers import (
     ServiceOptionSerializer,
     ServiceOptionValueSerializer,
 )
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 
 
-class ProviderView(APIView):
+# Custom Permissions
+class IsProviderOrCarrier(permissions.BasePermission):
+    """
+    Custom permission to allow only providers or carriers to perform restricted actions.
+    """
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_provider_or_carrier
+
+
+# Provider Views
+class ProviderListCreateView(generics.ListCreateAPIView):
+    """
+    List and create providers for the authenticated user.
+    """
+    serializer_class = ProviderSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        user_id = request.user.user_id  # Assume user_id is populated via JWT
-        providers = Provider.objects.filter(user_id=user_id)
-        if not providers.exists():
-            return Response([], status=status.HTTP_404_NOT_FOUND)
-        serializer = ProviderSerializer(providers, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        return Provider.objects.filter(user_id=self.request.user.user_id)
 
-    def post(self, request):
-        user_id = request.user.user_id
-        data = request.data.copy()
-        data["user_id"] = user_id
-        serializer = ProviderSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        serializer.save(user_id=self.request.user.user_id)
 
 
-class ServiceView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, provider_id):
-        user_id = request.user.user_id
-        try:
-            provider = Provider.objects.get(id=provider_id, user_id=user_id)
-        except Provider.DoesNotExist:
-            return Response([], status=status.HTTP_404_NOT_FOUND)
-
-        services = Service.objects.filter(provider=provider)
-        serializer = ServiceSerializer(services, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, provider_id):
-        user_id = request.user.user_id
-        try:
-            provider = Provider.objects.get(id=provider_id, user_id=user_id)
-        except Provider.DoesNotExist:
-            return Response([], status=status.HTTP_404_NOT_FOUND)
-
-        data = request.data.copy()
-        data["provider"] = provider.id
-        serializer = ServiceSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ServiceOptionView(APIView):
+# Service Views
+class ServiceListView(generics.ListAPIView):
     """
-    View to list, create, update, and delete service options.
+    List services for a specific provider.
+    Unauthenticated users see publicly available services.
+    Authenticated providers or carriers see all services and can manage them.
     """
+    serializer_class = ServiceSerializer
 
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, service_id=None, option_id=None):
-        if option_id:
-            # Retrieve a specific service option
-            option = ServiceOption.objects.filter(
-                id=option_id, service_id=service_id
-            ).first()
-            if not option:
-                return Response(
-                    {"detail": "Service option not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            serializer = ServiceOptionSerializer(option)
-        else:
-            # List all options for a service
-            options = ServiceOption.objects.filter(service_id=service_id)
-            serializer = ServiceOptionSerializer(options, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, service_id=None):
-        # Attach the service_id to the request data
-        data = request.data
-        data["service"] = (
-            service_id  # Associate the service option with the correct service
-        )
-
-        serializer = ServiceOptionSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()  # Save the service option
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, service_id=None, option_id=None):
-        # Update an existing service option
-        option = ServiceOption.objects.filter(
-            id=option_id, service_id=service_id
-        ).first()
-        if not option:
-            return Response(
-                {"detail": "Service option not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        serializer = ServiceOptionSerializer(option, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, service_id=None, option_id=None):
-        # Delete a service option
-        option = ServiceOption.objects.filter(
-            id=option_id, service_id=service_id
-        ).first()
-        if not option:
-            return Response(
-                {"detail": "Service option not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        option.delete()
-        return Response(
-            {"detail": "Service option deleted successfully."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+    def get_queryset(self):
+        provider = get_object_or_404(Provider, id=self.kwargs["provider_id"])
+        if self.request.user.is_authenticated and self.request.user.user_id == provider.user_id:
+            # Authenticated provider sees all services
+            return Service.objects.filter(provider=provider)
+        # Unauthenticated or other users see only public services
+        return Service.objects.filter(provider=provider, is_public=True)
 
 
-class ServiceOptionValueView(APIView):
+class ServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    View to list, create, update, and delete service option values.
+    Retrieve, update, or delete a specific service.
+    Only the provider or carrier can update or delete a service.
     """
+    serializer_class = ServiceSerializer
+    permission_classes = [IsProviderOrCarrier]
 
-    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        return Service.objects.filter(provider_id=self.kwargs["provider_id"])
 
-    def get(self, request, option_id=None, value_id=None):
-        if value_id:
-            # Retrieve a specific service option value
-            value = ServiceOptionValue.objects.filter(
-                id=value_id, option_id=option_id
-            ).first()
-            if not value:
-                return Response(
-                    {"detail": "Service option value not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            serializer = ServiceOptionValueSerializer(value)
-        else:
-            # List all values for a service option
-            values = ServiceOptionValue.objects.filter(option_id=option_id)
-            serializer = ServiceOptionValueSerializer(values, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request, option_id=None):
-        # Create a new service option value
-        data = request.data
-        data["option"] = option_id  # Associate with the correct option
-        serializer = ServiceOptionValueSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# Service Option Views
+class ServiceOptionListView(generics.ListCreateAPIView):
+    """
+    List and create service options for a specific service.
+    Unauthenticated users see publicly available options.
+    Authenticated providers or carriers can manage options.
+    """
+    serializer_class = ServiceOptionSerializer
 
-    def put(self, request, option_id=None, value_id=None):
-        # Update an existing service option value
-        value = ServiceOptionValue.objects.filter(
-            id=value_id, option_id=option_id
-        ).first()
-        if not value:
-            return Response(
-                {"detail": "Service option value not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        serializer = ServiceOptionValueSerializer(
-            value, data=request.data, partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        service = get_object_or_404(Service, id=self.kwargs["service_id"])
+        if self.request.user.is_authenticated and self.request.user.user_id == service.provider.user_id:
+            # Authenticated provider sees all options
+            return ServiceOption.objects.filter(service=service)
+        # Unauthenticated or other users see only public options
+        return ServiceOption.objects.filter(service=service, is_public=True)
 
-    def delete(self, request, option_id=None, value_id=None):
-        # Delete a service option value
-        value = ServiceOptionValue.objects.filter(
-            id=value_id, option_id=option_id
-        ).first()
-        if not value:
-            return Response(
-                {"detail": "Service option value not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        value.delete()
-        return Response(
-            {"detail": "Service option value deleted successfully."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+    def perform_create(self, serializer):
+        service = get_object_or_404(Service, id=self.kwargs["service_id"])
+        serializer.save(service=service)
+
+
+class ServiceOptionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a specific service option.
+    Only the provider or carrier can update or delete an option.
+    """
+    serializer_class = ServiceOptionSerializer
+    permission_classes = [IsProviderOrCarrier]
+
+    def get_queryset(self):
+        return ServiceOption.objects.filter(service_id=self.kwargs["service_id"])
+
+
+# Service Option Value Views
+class ServiceOptionValueListView(generics.ListCreateAPIView):
+    """
+    List and create service option values for a specific option.
+    Unauthenticated users see public values.
+    Authenticated providers or carriers can manage values.
+    """
+    serializer_class = ServiceOptionValueSerializer
+
+    def get_queryset(self):
+        option = get_object_or_404(ServiceOption, id=self.kwargs["option_id"])
+        if self.request.user.is_authenticated and self.request.user.user_id == option.service.provider.user_id:
+            # Authenticated provider sees all values
+            return ServiceOptionValue.objects.filter(option=option)
+        # Unauthenticated or other users see only public values
+        return ServiceOptionValue.objects.filter(option=option, is_public=True)
+
+    def perform_create(self, serializer):
+        option = get_object_or_404(ServiceOption, id=self.kwargs["option_id"])
+        serializer.save(option=option)
+
+
+class ServiceOptionValueDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a specific service option value.
+    Only the provider or carrier can update or delete a value.
+    """
+    serializer_class = ServiceOptionValueSerializer
+    permission_classes = [IsProviderOrCarrier]
+
+    def get_queryset(self):
+        return ServiceOptionValue.objects.filter(option_id=self.kwargs["option_id"])
