@@ -33,12 +33,12 @@ urlpatterns = [
 
     # Services
     path(
-        "<uuid:provider_id>/services/",
+        "<uuid:provider_id>/",
         ServiceListView.as_view(),
         name="provider-service-list",
     ),
     path(
-        "<uuid:provider_id>/services/<uuid:service_id>/",
+        "<uuid:provider_id>/services/<uuid:id>/",
         ServiceDetailView.as_view(),
         name="service-detail",
     ),
