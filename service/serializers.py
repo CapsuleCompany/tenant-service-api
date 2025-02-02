@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from .models import (
-    Provider,
-    ProviderTeam,
-    ProviderLocation,
+    Tenant,
+    TenantTeam,
+    TenantLocation,
     Service,
     ServiceLocation,
     ServiceOption,
@@ -10,9 +10,9 @@ from .models import (
 )
 
 
-class ProviderSerializer(serializers.ModelSerializer):
+class TenantSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Provider
+        model = Tenant
         fields = [
             "id",
             "name",
@@ -26,22 +26,21 @@ class ProviderSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
-class ProviderTeamSerializer(serializers.ModelSerializer):
+class TenantTeamSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProviderTeam
+        model = TenantTeam
         fields = [
             "id",
             "provider",
             "user_id",
             "role",
-            "added_at",
         ]
         read_only_fields = ["id", "added_at"]
 
 
-class ProviderLocationSerializer(serializers.ModelSerializer):
+class TenantLocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProviderLocation
+        model = TenantLocation
         fields = [
             "id",
             "provider",

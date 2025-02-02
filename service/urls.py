@@ -7,8 +7,8 @@ from drf_spectacular.views import (
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from .views import (
-    ProviderListCreateView,
-    ProviderLocationListCreateView,
+    TenantListCreateView,
+    TenantLocationListCreateView,
     ServiceListView,
     ServiceDetailView,
     ServiceLocationListCreateView,
@@ -19,18 +19,17 @@ from .views import (
 )
 
 urlpatterns = [
-    # Providers
+    # Tenants
     path(
         "",
-        ProviderListCreateView.as_view(),
+        TenantListCreateView.as_view(),
         name="provider-list-create",
     ),
     path(
         "<uuid:provider_id>/locations/",
-        ProviderLocationListCreateView.as_view(),
+        TenantLocationListCreateView.as_view(),
         name="provider-location-list-create",
     ),
-
     # Services
     path(
         "<uuid:provider_id>/",
@@ -38,7 +37,7 @@ urlpatterns = [
         name="provider-service-list",
     ),
     path(
-        "<uuid:provider_id>/services/<uuid:id>/",
+        "<uuid:provider_id>/services/",
         ServiceDetailView.as_view(),
         name="service-detail",
     ),
@@ -47,7 +46,6 @@ urlpatterns = [
         ServiceLocationListCreateView.as_view(),
         name="service-location-list-create",
     ),
-
     # Service Options
     path(
         "<uuid:provider_id>/services/<uuid:service_id>/options/",
@@ -59,7 +57,6 @@ urlpatterns = [
         ServiceOptionDetailView.as_view(),
         name="service-option-detail",
     ),
-
     # Service Option Values
     path(
         "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/values/",
@@ -71,7 +68,6 @@ urlpatterns = [
         ServiceOptionValueDetailView.as_view(),
         name="service-option-value-detail",
     ),
-
     # OpenAPI Schema
     path(
         "api/schema/",
@@ -87,9 +83,7 @@ urlpatterns = [
     ),
     path(
         "api/redoc/",
-        permission_classes([AllowAny])(
-            SpectacularRedocView.as_view(url_name="schema")
-        ),
+        permission_classes([AllowAny])(SpectacularRedocView.as_view(url_name="schema")),
         name="redoc",
     ),
 ]

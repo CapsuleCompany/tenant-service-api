@@ -10,6 +10,7 @@ class ServiceConfig(AppConfig):
     def ready(self):
         pre_migrate.connect(create_schema, sender=self)
 
+
 def create_schema(sender, **kwargs):
     schema_name = "service_api"
     with connection.cursor() as cursor:

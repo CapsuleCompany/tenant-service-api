@@ -2,60 +2,72 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import (
-    Provider,
-    ProviderLocation,
+    Tenant,
+    TenantLocation,
     Service,
     ServiceOption,
     ServiceOptionValue,
     ServiceLocation,
 )
 from .serializers import (
-    ProviderSerializer,
+    TenantSerializer,
     ServiceSerializer,
     ServiceOptionSerializer,
     ServiceOptionValueSerializer,
-    ProviderLocationSerializer,
+    TenantLocationSerializer,
     ServiceLocationSerializer,
 )
 
 
 # Custom Permissions
-class IsProviderOrTeamMember(permissions.BasePermission):
+class IsTenantOrTeamMember(permissions.BasePermission):
     """
-    Custom permission to allow only providers or their team members to perform restricted actions.
+    Custom permission to allow only Tenants or their team members to perform restricted actions.
     """
+
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.user_id is not None
 
 
-# Provider Views
-class ProviderListCreateView(generics.ListCreateAPIView):
+# Tenant Views
+class TenantListCreateView(generics.ListCreateAPIView):
     """
-    List and create providers for the authenticated user.
+    List and create Tenants for the authenticated user.
     """
-    serializer_class = ProviderSerializer
+
+    serializer_class = TenantSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Provider.objects.filter(user_id=self.request.user.user_id)
+        return Tenant.objects.filter(user_id=self.request.user.user_id)
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."}, status=401
+            )
+        return self.list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(user_id=self.request.user.user_id)
 
 
-# Provider Location Views
-class ProviderLocationListCreateView(generics.ListCreateAPIView):
+# Tenant Location Views
+class TenantLocationListCreateView(generics.ListCreateAPIView):
     """
-    List and create locations for a specific provider.
+    List and create locations for a specific Tenant.
     """
-    serializer_class = ProviderLocationSerializer
+
+    serializer_class = TenantLocationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return ProviderLocation.objects.filter(provider__user_id=self.request.user.user_id)
+        return TenantLocation.objects.filter(
+            provider__user_id=self.request.user.user_id
+        )
 
     def perform_create(self, serializer):
-        provider = get_object_or_404(Provider, id=self.kwargs["provider_id"])
+        provider = get_object_or_404(Tenant, id=self.kwargs["provider_id"])
         serializer.save(provider=provider)
 
 
@@ -66,11 +78,15 @@ class ServiceListView(generics.ListAPIView):
     Unauthenticated users see publicly available services.
     Authenticated providers or team members see all services and can manage them.
     """
+
     serializer_class = ServiceSerializer
 
     def get_queryset(self):
-        provider = get_object_or_404(Provider, id=self.kwargs["provider_id"])
-        if self.request.user.is_authenticated and self.request.user.user_id == provider.user_id:
+        provider = get_object_or_404(Tenant, id=self.kwargs["provider_id"])
+        if (
+            self.request.user.is_authenticated
+            and self.request.user.user_id == provider.user_id
+        ):
             return Service.objects.filter(provider=provider)
         return Service.objects.filter(provider=provider, is_public=True)
 
@@ -81,13 +97,14 @@ class ServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     Unauthenticated users can retrieve the service details.
     Authenticated providers or team members can perform CRUD operations.
     """
+
     serializer_class = ServiceSerializer
     lookup_field = "id"
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
             return [permissions.AllowAny()]
-        return [IsProviderOrTeamMember()]
+        return [IsTenantOrTeamMember()]
 
     def get_queryset(self):
         return Service.objects.filter(provider_id=self.kwargs["provider_id"])
@@ -98,6 +115,7 @@ class ServiceLocationListCreateView(generics.ListCreateAPIView):
     """
     List and create locations for a specific service.
     """
+
     serializer_class = ServiceLocationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -115,6 +133,7 @@ class ServiceOptionListView(generics.ListCreateAPIView):
     """
     List and create service options for a specific service.
     """
+
     serializer_class = ServiceOptionSerializer
 
     def get_queryset(self):
@@ -130,12 +149,13 @@ class ServiceOptionDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific service option.
     """
+
     serializer_class = ServiceOptionSerializer
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
             return [permissions.AllowAny()]
-        return [IsProviderOrTeamMember()]
+        return [IsTenantOrTeamMember()]
 
     def get_queryset(self):
         return ServiceOption.objects.filter(service_id=self.kwargs["service_id"])
@@ -146,6 +166,7 @@ class ServiceOptionValueListView(generics.ListCreateAPIView):
     """
     List and create service option values for a specific option.
     """
+
     serializer_class = ServiceOptionValueSerializer
 
     def get_queryset(self):
@@ -161,12 +182,13 @@ class ServiceOptionValueDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update, or delete a specific service option value.
     """
+
     serializer_class = ServiceOptionValueSerializer
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
             return [permissions.AllowAny()]
-        return [IsProviderOrTeamMember()]
+        return [IsTenantOrTeamMember()]
 
     def get_queryset(self):
         return ServiceOptionValue.objects.filter(option_id=self.kwargs["option_id"])

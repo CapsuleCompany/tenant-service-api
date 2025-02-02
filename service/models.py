@@ -6,34 +6,33 @@ class BaseModel(models.Model):
     """
     Base model with commonly needed fields for all models to inherit.
     """
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False,
-        help_text="Unique identifier for each record."
+        help_text="Unique identifier for each record.",
     )
     created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="The timestamp when this record was created."
+        auto_now_add=True, help_text="The timestamp when this record was created."
     )
     updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="The timestamp when this record was last updated."
+        auto_now=True, help_text="The timestamp when this record was last updated."
     )
     is_active = models.BooleanField(
-        default=True,
-        help_text="Indicates whether this record is active or not."
+        default=True, help_text="Indicates whether this record is active or not."
     )
 
     class Meta:
         abstract = True
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
 
-class Provider(BaseModel):
+class Tenant(BaseModel):
     """
     Represents a service provider managed by a team of users.
     """
+
     user_id = models.CharField(
         max_length=255,
         help_text="The ID of the primary user managing this provider (obtained from JWT).",
@@ -57,16 +56,20 @@ class Provider(BaseModel):
         default=False, help_text="Indicates whether the provider is disabled."
     )
 
+    class Meta:
+        db_table = "Tenant"
+
     def __str__(self):
         return self.name
 
 
-class ProviderTeam(BaseModel):
+class TenantTeam(BaseModel):
     """
     Represents a team member with specific roles for a provider.
     """
+
     provider = models.ForeignKey(
-        Provider,
+        Tenant,
         on_delete=models.CASCADE,
         related_name="team_members",
         help_text="The provider this team member belongs to.",
@@ -87,16 +90,20 @@ class ProviderTeam(BaseModel):
         help_text="Role of the team member within the provider.",
     )
 
+    class Meta:
+        db_table = "TenantTeam"
+
     def __str__(self):
         return f"{self.user_id} ({self.role}) - {self.provider.name}"
 
 
-class ProviderLocation(BaseModel):
+class TenantLocation(BaseModel):
     """
     Represents a location associated with a provider.
     """
+
     provider = models.ForeignKey(
-        Provider,
+        Tenant,
         on_delete=models.CASCADE,
         related_name="locations",
         help_text="The provider this location belongs to.",
@@ -108,6 +115,9 @@ class ProviderLocation(BaseModel):
         blank=True, help_text="Human-readable address for the location."
     )
 
+    class Meta:
+        db_table = "TenantLocation"
+
     def __str__(self):
         return f"Location {self.location_id} for {self.provider.name}"
 
@@ -116,8 +126,9 @@ class Service(BaseModel):
     """
     Represents a service offered by a provider.
     """
+
     provider = models.ForeignKey(
-        Provider,
+        Tenant,
         on_delete=models.CASCADE,
         related_name="services",
         help_text="The provider offering this service.",
@@ -140,12 +151,15 @@ class Service(BaseModel):
         max_length=255,
         blank=True,
         null=True,
-        help_text="Image representing the service."
+        help_text="Image representing the service.",
     )
     duration_minutes = models.PositiveIntegerField(
         null=True, blank=True, help_text="Duration of the service in minutes."
     )
     is_public = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "Service"
 
     def __str__(self):
         return self.name
@@ -155,6 +169,7 @@ class ServiceLocation(BaseModel):
     """
     Represents a specific location where a service is offered and its range.
     """
+
     service = models.ForeignKey(
         Service,
         on_delete=models.CASCADE,
@@ -162,14 +177,13 @@ class ServiceLocation(BaseModel):
         help_text="The service offered at this location.",
     )
     location = models.ForeignKey(
-        ProviderLocation,
+        TenantLocation,
         on_delete=models.CASCADE,
         related_name="service_locations",
         help_text="The location where this service is available.",
     )
     service_range_mi = models.FloatField(
-        default=10.0,
-        help_text="Service range in miles from this location."
+        default=10.0, help_text="Service range in miles from this location."
     )
     availability_start = models.TimeField(
         null=True, blank=True, help_text="Service availability start time."
@@ -177,6 +191,9 @@ class ServiceLocation(BaseModel):
     availability_end = models.TimeField(
         null=True, blank=True, help_text="Service availability end time."
     )
+
+    class Meta:
+        db_table = "ServiceLocation"
 
     def __str__(self):
         return f"{self.service.name} at {self.location}"
@@ -186,6 +203,7 @@ class ServiceOption(BaseModel):
     """
     Represents customizable options for a service.
     """
+
     service = models.ForeignKey(
         Service, on_delete=models.CASCADE, related_name="options"
     )
@@ -196,8 +214,13 @@ class ServiceOption(BaseModel):
         default=False, help_text="Indicates if this option is required."
     )
     max_selections = models.PositiveIntegerField(
-        null=True, blank=True, help_text="Maximum number of selections allowed for this option."
+        null=True,
+        blank=True,
+        help_text="Maximum number of selections allowed for this option.",
     )
+
+    class Meta:
+        db_table = "ServiceOption"
 
     def __str__(self):
         return f"{self.name} (Service: {self.service.name})"
@@ -207,6 +230,7 @@ class ServiceOptionValue(BaseModel):
     """
     Represents individual values for a service option.
     """
+
     option = models.ForeignKey(
         ServiceOption, on_delete=models.CASCADE, related_name="values"
     )
@@ -217,8 +241,11 @@ class ServiceOptionValue(BaseModel):
         max_digits=10,
         decimal_places=2,
         default=0.00,
-        help_text="Additional price for this option value."
+        help_text="Additional price for this option value.",
     )
+
+    class Meta:
+        db_table = "ServiceOptionValue"
 
     def __str__(self):
         return f"{self.name} (Option: {self.option.name})"

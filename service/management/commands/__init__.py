@@ -1,5 +1,5 @@
 def progress_bar(  # noqa: PLR0913
-        iterable, prefix="", suffix="", decimals=1, length=100, fill="█", printEnd="\r"
+    iterable, prefix="", suffix="", decimals=1, length=100, fill="█", printEnd="\r"
 ):
     """
     Call in a loop to create terminal progress bar with colored output.

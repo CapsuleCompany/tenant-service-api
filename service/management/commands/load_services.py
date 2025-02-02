@@ -1,4 +1,5 @@
 import uuid
+import requests
 from django.core.management.base import BaseCommand
 from model_bakery import baker
 from service.models import (
@@ -12,11 +13,48 @@ from service.models import (
 )
 from . import progress_bar
 
+# API endpoint to fetch user details
+USER_RETRIEVE_URL = "http://user-api:8000/api/auth/users/retrieve/"
+USER_EMAIL = "ccrowder@capsuleio.com"
+
 
 class Command(BaseCommand):
     help = "Populate the database with sample providers, services, and options using bakery."
 
     def handle(self, *args, **options):
+        self.stdout.write("Fetching user ID for ccrowder@capsuleio.com...")
+
+        # Get user ID from the API
+        def get_user_id(email):
+            """
+            Fetch the user ID for the given email.
+            """
+            try:
+                response = requests.post(
+                    USER_RETRIEVE_URL, json={"email": email}, timeout=10
+                )
+                response.raise_for_status()
+                user_data = response.json()
+                return user_data.get("id")
+            except requests.HTTPError as e:
+                print(f"HTTP error: {e}")
+            except requests.ConnectionError:
+                print("Failed to connect to the user API.")
+            except requests.Timeout:
+                print("Request timed out.")
+            except requests.RequestException as e:
+                print(f"Error reaching the user API: {e}")
+            return None
+
+        USER_EMAIL = "ccrowder@capsuleio.com"
+        user_id = get_user_id(USER_EMAIL)
+
+        if user_id:
+            print(f"Fetched user ID: {user_id}")
+        else:
+            print("Failed to fetch user ID.")
+            return
+
         # Clear existing data
         self.stdout.write("Clearing existing data...")
         Provider.objects.all().delete()
@@ -27,26 +65,26 @@ class Command(BaseCommand):
         ServiceOption.objects.all().delete()
         ServiceOptionValue.objects.all().delete()
 
-        # Define providers
+        # Define providers with the retrieved user_id
         providers = [
             {
                 "name": "Green Thumb Landscaping",
                 "description": "Expert landscaping and lawn care services.",
-                "user_id": 1,
+                "user_id": user_id,
                 "contact_email": "greenthumb@example.com",
                 "phone_number": "123-456-7890",
             },
             {
                 "name": "QuickMove Services",
                 "description": "Reliable moving and packing services.",
-                "user_id": 1,
+                "user_id": user_id,
                 "contact_email": "quickmove@example.com",
                 "phone_number": "987-654-3210",
             },
             {
                 "name": "Style Studio Salon",
                 "description": "Professional hair and beauty services.",
-                "user_id": 1,
+                "user_id": user_id,
                 "contact_email": "stylestudio@example.com",
                 "phone_number": "555-555-5555",
             },
