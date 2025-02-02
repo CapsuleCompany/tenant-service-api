@@ -3,9 +3,9 @@ import requests
 from django.core.management.base import BaseCommand
 from model_bakery import baker
 from service.models import (
-    Provider,
-    ProviderLocation,
-    ProviderTeam,
+    Tenant,
+    TenantLocation,
+    TenantTeam,
     Service,
     ServiceLocation,
     ServiceOption,
@@ -57,9 +57,9 @@ class Command(BaseCommand):
 
         # Clear existing data
         self.stdout.write("Clearing existing data...")
-        Provider.objects.all().delete()
-        ProviderLocation.objects.all().delete()
-        ProviderTeam.objects.all().delete()
+        Tenant.objects.all().delete()
+        TenantLocation.objects.all().delete()
+        TenantTeam.objects.all().delete()
         Service.objects.all().delete()
         ServiceLocation.objects.all().delete()
         ServiceOption.objects.all().delete()
@@ -95,14 +95,14 @@ class Command(BaseCommand):
         for provider_data in progress_bar(
             providers, prefix="Providers", suffix="Complete", length=50
         ):
-            provider_instances.append(baker.make(Provider, **provider_data))
+            provider_instances.append(baker.make(Tenant, **provider_data))
 
         # Define provider locations
         self.stdout.write("Populating provider locations...")
         provider_locations = []
         for provider in provider_instances:
             location = baker.make(
-                ProviderLocation,
+                TenantLocation,
                 provider=provider,
                 location_id=uuid.uuid4(),
                 address=f"{provider.name} Address",
@@ -113,7 +113,7 @@ class Command(BaseCommand):
         self.stdout.write("Populating provider teams...")
         for provider in provider_instances:
             baker.make(
-                ProviderTeam,
+                TenantTeam,
                 provider=provider,
                 user_id=provider.user_id,
                 role="owner",

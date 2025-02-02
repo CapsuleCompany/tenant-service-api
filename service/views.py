@@ -2,19 +2,16 @@ from rest_framework import generics, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import (
-    Tenant,
-    TenantLocation,
     Service,
     ServiceOption,
     ServiceOptionValue,
     ServiceLocation,
 )
+
 from .serializers import (
-    TenantSerializer,
     ServiceSerializer,
     ServiceOptionSerializer,
     ServiceOptionValueSerializer,
-    TenantLocationSerializer,
     ServiceLocationSerializer,
 )
 
@@ -27,48 +24,6 @@ class IsTenantOrTeamMember(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.user_id is not None
-
-
-# Tenant Views
-class TenantListCreateView(generics.ListCreateAPIView):
-    """
-    List and create Tenants for the authenticated user.
-    """
-
-    serializer_class = TenantSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Tenant.objects.filter(user_id=self.request.user.user_id)
-
-    def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."}, status=401
-            )
-        return self.list(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
-        serializer.save(user_id=self.request.user.user_id)
-
-
-# Tenant Location Views
-class TenantLocationListCreateView(generics.ListCreateAPIView):
-    """
-    List and create locations for a specific Tenant.
-    """
-
-    serializer_class = TenantLocationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return TenantLocation.objects.filter(
-            provider__user_id=self.request.user.user_id
-        )
-
-    def perform_create(self, serializer):
-        provider = get_object_or_404(Tenant, id=self.kwargs["provider_id"])
-        serializer.save(provider=provider)
 
 
 # Service Views

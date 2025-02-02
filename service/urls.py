@@ -7,8 +7,6 @@ from drf_spectacular.views import (
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from .views import (
-    TenantListCreateView,
-    TenantLocationListCreateView,
     ServiceListView,
     ServiceDetailView,
     ServiceLocationListCreateView,
@@ -19,17 +17,6 @@ from .views import (
 )
 
 urlpatterns = [
-    # Tenants
-    path(
-        "",
-        TenantListCreateView.as_view(),
-        name="provider-list-create",
-    ),
-    path(
-        "<uuid:provider_id>/locations/",
-        TenantLocationListCreateView.as_view(),
-        name="provider-location-list-create",
-    ),
     # Services
     path(
         "<uuid:provider_id>/",

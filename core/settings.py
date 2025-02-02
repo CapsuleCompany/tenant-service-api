@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "service",
+    "tenant"
 ]
 
 # Middleware
@@ -45,7 +46,7 @@ DATABASES = {
         "PASSWORD": env.str("POSTGRES_PASSWORD", default="password"),
         "HOST": env.str("POSTGRES_HOST", default="localhost"),
         "PORT": env.int("POSTGRES_PORT", default=5432),
-        "OPTIONS": {"options": "-c search_path=service_api"},
+        "OPTIONS": {"options": "-c search_path=tenant_api"},
     }
 }
 

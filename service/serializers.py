@@ -1,54 +1,11 @@
 from rest_framework import serializers
 from .models import (
-    Tenant,
-    TenantTeam,
-    TenantLocation,
     Service,
     ServiceLocation,
     ServiceOption,
     ServiceOptionValue,
 )
 
-
-class TenantSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tenant
-        fields = [
-            "id",
-            "name",
-            "description",
-            "logo",
-            "contact_email",
-            "phone_number",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-
-
-class TenantTeamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TenantTeam
-        fields = [
-            "id",
-            "provider",
-            "user_id",
-            "role",
-        ]
-        read_only_fields = ["id", "added_at"]
-
-
-class TenantLocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TenantLocation
-        fields = [
-            "id",
-            "provider",
-            "location_id",
-            "address",
-            "created_at",
-        ]
-        read_only_fields = ["id", "created_at"]
 
 
 class ServiceLocationSerializer(serializers.ModelSerializer):
