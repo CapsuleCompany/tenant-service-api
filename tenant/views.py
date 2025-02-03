@@ -7,6 +7,7 @@ from .serializers import (
 )
 from .models import Tenant
 
+
 # Tenant Views
 class TenantListCreateView(generics.ListCreateAPIView):
     """
@@ -47,4 +48,3 @@ class TenantLocationListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         provider = get_object_or_404(Tenant, id=self.kwargs["provider_id"])
         serializer.save(provider=provider)
-

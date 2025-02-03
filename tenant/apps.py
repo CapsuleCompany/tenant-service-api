@@ -9,7 +9,9 @@ class TenantConfig(AppConfig):
 
     def ready(self):
         import tenant.signals
+
         pre_migrate.connect(create_schema, sender=self)
+
 
 def create_schema(sender, **kwargs):
     schema_name = "tenant_api"

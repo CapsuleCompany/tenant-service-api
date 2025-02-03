@@ -28,8 +28,8 @@ class TenantSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        user = self.context['request'].user
-        #TODO Check tenant limit
+        user = self.context["request"].user
+        # TODO Check tenant limit
         validated_data["user_id"] = user.user_id if user else None
         tenant, _ = Tenant.objects.get_or_create(**validated_data)
         return tenant

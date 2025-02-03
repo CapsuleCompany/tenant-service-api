@@ -7,7 +7,6 @@ from .models import (
 )
 
 
-
 class ServiceLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceLocation

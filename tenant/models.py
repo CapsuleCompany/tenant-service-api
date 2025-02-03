@@ -61,22 +61,29 @@ class TenantLocation(BaseModel):
 
 
 class TenantPlan(models.Model):
-    tenant = models.OneToOneField("Tenant", on_delete=models.CASCADE, related_name="plan")
+    tenant = models.OneToOneField(
+        "Tenant", on_delete=models.CASCADE, related_name="plan"
+    )
     plan_name = models.CharField(max_length=50, help_text="Plan name")
     max_users = models.IntegerField(default=1)
     max_storage_gb = models.IntegerField(default=10)
     custom_roles = models.BooleanField(default=False)
-    feature_flags = models.JSONField(default=dict, help_text="Custom feature toggles for this plan.")
+    feature_flags = models.JSONField(
+        default=dict, help_text="Custom feature toggles for this plan."
+    )
 
 
 class TenantRole(models.Model):
     """
     Defines roles within a tenant. This allows for custom role creation.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="roles")
     name = models.CharField(max_length=50, help_text="Custom role name")
-    permissions = models.JSONField(default=dict, help_text="Permissions associated with this role")
+    permissions = models.JSONField(
+        default=dict, help_text="Permissions associated with this role"
+    )
 
     class Meta:
         db_table = "TenantRoles"
@@ -84,4 +91,3 @@ class TenantRole(models.Model):
 
     def __str__(self):
         return f"{self.tenant.name} - {self.name}"
-

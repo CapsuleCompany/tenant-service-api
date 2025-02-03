@@ -1,8 +1,5 @@
 from django.urls import path
-from .views import (
-    TenantListCreateView,
-    TenantLocationListCreateView
-)
+from .views import TenantListCreateView, TenantLocationListCreateView
 
 urlpatterns = [
     # Tenants
@@ -15,4 +12,5 @@ urlpatterns = [
         "<uuid:provider_id>/locations/",
         TenantLocationListCreateView.as_view(),
         name="provider-location-list-create",
-    ),]
+    ),
+]
