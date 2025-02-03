@@ -100,3 +100,5 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+USER_SERVICE_API = "http://user-api:8000/api/auth/"

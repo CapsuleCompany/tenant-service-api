@@ -8,6 +8,7 @@ class TenantConfig(AppConfig):
     name = "tenant"
 
     def ready(self):
+        import tenant.signals
         pre_migrate.connect(create_schema, sender=self)
 
 def create_schema(sender, **kwargs):

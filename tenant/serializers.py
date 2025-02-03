@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import (
     Tenant,
-    TenantTeam,
     TenantLocation,
 )
 
@@ -40,18 +39,6 @@ class TenantSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
-
-
-class TenantTeamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TenantTeam
-        fields = [
-            "id",
-            "provider",
-            "user_id",
-            "role",
-        ]
-        read_only_fields = ["id", "added_at"]
 
 
 class TenantLocationSerializer(serializers.ModelSerializer):

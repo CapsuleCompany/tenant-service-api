@@ -3,18 +3,20 @@ import requests
 from django.core.management.base import BaseCommand
 from model_bakery import baker
 from service.models import (
-    Tenant,
-    TenantLocation,
-    TenantTeam,
     Service,
     ServiceLocation,
     ServiceOption,
     ServiceOptionValue,
 )
+from tenant.models import (
+    Tenant,
+    TenantLocation,
+)
 from . import progress_bar
+from django.conf import settings
 
 # API endpoint to fetch user details
-USER_RETRIEVE_URL = "http://user-api:8000/api/auth/users/retrieve/"
+USER_RETRIEVE_URL = settings.USER_SERVICE_API + "users/retrieve/"
 USER_EMAIL = "ccrowder@capsuleio.com"
 
 
@@ -59,7 +61,6 @@ class Command(BaseCommand):
         self.stdout.write("Clearing existing data...")
         Tenant.objects.all().delete()
         TenantLocation.objects.all().delete()
-        TenantTeam.objects.all().delete()
         Service.objects.all().delete()
         ServiceLocation.objects.all().delete()
         ServiceOption.objects.all().delete()
@@ -105,19 +106,8 @@ class Command(BaseCommand):
                 TenantLocation,
                 provider=provider,
                 location_id=uuid.uuid4(),
-                address=f"{provider.name} Address",
             )
             provider_locations.append(location)
-
-        # Define provider teams
-        self.stdout.write("Populating provider teams...")
-        for provider in provider_instances:
-            baker.make(
-                TenantTeam,
-                provider=provider,
-                user_id=provider.user_id,
-                role="owner",
-            )
 
         # Define services
         services = [
