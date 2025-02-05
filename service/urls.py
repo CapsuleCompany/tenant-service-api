@@ -1,76 +1,15 @@
-from django.urls import path
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularSwaggerView,
-    SpectacularRedocView,
-)
-from rest_framework.permissions import AllowAny
-from rest_framework.decorators import permission_classes
-from .views import (
-    ServiceListView,
-    ServiceDetailView,
-    ServiceLocationListCreateView,
-    ServiceOptionListView,
-    ServiceOptionDetailView,
-    ServiceOptionValueListView,
-    ServiceOptionValueDetailView,
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework_nested.routers import NestedDefaultRouter
+from .views import ServiceViewSet, ServiceOptionViewSet
+
+router = DefaultRouter()
+router.register(r"", ServiceViewSet, basename="service")
+
+services_router = NestedDefaultRouter(router, r"", lookup="service")
+services_router.register(r"options", ServiceOptionViewSet, basename="service-options")
 
 urlpatterns = [
-    # Services
-    path(
-        "<uuid:provider_id>/",
-        ServiceListView.as_view(),
-        name="provider-service-list",
-    ),
-    path(
-        "<uuid:provider_id>/services/",
-        ServiceDetailView.as_view(),
-        name="service-detail",
-    ),
-    path(
-        "<uuid:provider_id>/services/<uuid:service_id>/locations/",
-        ServiceLocationListCreateView.as_view(),
-        name="service-location-list-create",
-    ),
-    # Service Options
-    path(
-        "<uuid:provider_id>/services/<uuid:service_id>/options/",
-        ServiceOptionListView.as_view(),
-        name="service-option-list-create",
-    ),
-    path(
-        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/",
-        ServiceOptionDetailView.as_view(),
-        name="service-option-detail",
-    ),
-    # Service Option Values
-    path(
-        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/values/",
-        ServiceOptionValueListView.as_view(),
-        name="service-option-value-list-create",
-    ),
-    path(
-        "<uuid:provider_id>/services/<uuid:service_id>/options/<uuid:option_id>/values/<uuid:value_id>/",
-        ServiceOptionValueDetailView.as_view(),
-        name="service-option-value-detail",
-    ),
-    # OpenAPI Schema
-    path(
-        "api/schema/",
-        permission_classes([AllowAny])(SpectacularAPIView.as_view()),
-        name="schema",
-    ),
-    path(
-        "api/docs/",
-        permission_classes([AllowAny])(
-            SpectacularSwaggerView.as_view(url_name="schema")
-        ),
-        name="swagger-ui",
-    ),
-    path(
-        "api/redoc/",
-        permission_classes([AllowAny])(SpectacularRedocView.as_view(url_name="schema")),
-        name="redoc",
-    ),
+    path("", include(router.urls)),
+    path("", include(services_router.urls)),
 ]

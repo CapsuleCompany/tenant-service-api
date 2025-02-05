@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, viewsets
 from rest_framework.response import Response
 from .serializers import (
     TenantSerializer,
@@ -8,8 +8,7 @@ from .serializers import (
 from .models import Tenant
 
 
-# Tenant Views
-class TenantListCreateView(generics.ListCreateAPIView):
+class TenantViewSet(viewsets.ModelViewSet):
     """
     List and create Tenants for the authenticated user.
     """
@@ -18,7 +17,7 @@ class TenantListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Tenant.objects.filter()
+        return Tenant.objects.all()
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -31,8 +30,7 @@ class TenantListCreateView(generics.ListCreateAPIView):
         serializer.save()
 
 
-# Tenant Location Views
-class TenantLocationListCreateView(generics.ListCreateAPIView):
+class TenantLocationView(viewsets.ModelViewSet):
     """
     List and create locations for a specific Tenant.
     """

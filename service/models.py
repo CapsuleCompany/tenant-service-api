@@ -1,5 +1,7 @@
+import requests
 from django.db import models
 from common.models import BaseModel
+from django.conf import settings
 
 
 class Service(BaseModel):
@@ -7,7 +9,7 @@ class Service(BaseModel):
     Represents a service offered by a provider.
     """
 
-    provider = models.ForeignKey(
+    tenant = models.ForeignKey(
         "tenant.Tenant",
         on_delete=models.CASCADE,
         related_name="services",
@@ -47,7 +49,8 @@ class Service(BaseModel):
 
 class ServiceLocation(BaseModel):
     """
-    Represents a specific location where a service is offered and its range.
+    Represents a specific location where a service is offered, including its range,
+    availability, and integration with external scheduling and location services.
     """
 
     service = models.ForeignKey(
@@ -71,12 +74,46 @@ class ServiceLocation(BaseModel):
     availability_end = models.TimeField(
         null=True, blank=True, help_text="Service availability end time."
     )
+    external_schedule_id = models.UUIDField(
+        null=True, blank=True, help_text="Reference to the scheduling system."
+    )
+    external_location_id = models.UUIDField(
+        null=True, blank=True, help_text="Reference to the location service."
+    )
 
     class Meta:
         db_table = "ServiceLocation"
 
     def __str__(self):
         return f"{self.service.name} at {self.location}"
+
+    def get_availability(self):
+        """
+        Fetch availability data from the scheduling service.
+        """
+        if not self.external_schedule_id:
+            return {"error": "No external schedule ID provided."}
+
+        url = f"{settings.SCHEDULE_SERVICE_URL}/api/availability/{self.external_schedule_id}/"
+        response = requests.get(url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"})
+
+        if response.status_code == 200:
+            return response.json()
+        return {"error": "Failed to fetch availability.", "status": response.status_code}
+
+    def get_address(self):
+        """
+        Fetch address details from the location service.
+        """
+        if not self.external_location_id:
+            return {"error": "No external location ID provided."}
+
+        url = f"{settings.LOCATION_SERVICE_URL}/api/locations/{self.external_location_id}/"
+        response = requests.get(url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"})
+
+        if response.status_code == 200:
+            return response.json()
+        return {"error": "Failed to fetch location details.", "status": response.status_code}
 
 
 class ServiceOption(BaseModel):

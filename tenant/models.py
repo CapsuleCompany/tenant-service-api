@@ -32,7 +32,7 @@ class Tenant(BaseModel):
     )
 
     class Meta:
-        db_table = "Organization"
+        db_table = "Tenant"
 
     def __str__(self):
         return self.name
