@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from tenant.models import Tenant
+from tenant.models import Tenant, TenantPlan
 import requests
 from django.conf import settings
 from kafka import KafkaProducer
@@ -15,6 +15,11 @@ producer = KafkaProducer(
     bootstrap_servers=KAFKA_SERVERS,
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
 )
+
+# @receiver(post_save, sender=Tenant)
+# def create_tenant_plan(sender, instance, created, **kwargs):
+#     if created:
+#         TenantPlan.objects.create(tenant_id=instance.id)
 
 
 @receiver(post_save, sender=Tenant)

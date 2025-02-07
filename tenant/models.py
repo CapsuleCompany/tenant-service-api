@@ -8,7 +8,7 @@ class Tenant(BaseModel):
     Represents a service provider managed by a team of users.
     """
 
-    user_id = models.UUIDField(
+    owner_id = models.UUIDField(
         max_length=255,
         help_text="The ID of the primary user managing this provider (obtained from JWT).",
     )
@@ -67,6 +67,7 @@ class TenantPlan(models.Model):
     plan_name = models.CharField(max_length=50, help_text="Plan name")
     max_users = models.IntegerField(default=1)
     max_storage_gb = models.IntegerField(default=10)
+    max_tenants = models.IntegerField(default=2, help_text="Max tenants allowed under this plan")
     custom_roles = models.BooleanField(default=False)
     feature_flags = models.JSONField(
         default=dict, help_text="Custom feature toggles for this plan."

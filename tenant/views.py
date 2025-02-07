@@ -1,11 +1,14 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from .serializers import (
     TenantSerializer,
     TenantLocationSerializer,
 )
-from .models import Tenant
+from .models import Tenant, TenantPlan
+from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
 
 
 class TenantViewSet(viewsets.ModelViewSet):
@@ -17,17 +20,38 @@ class TenantViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Tenant.objects.all()
-
-    def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."}, status=401
-            )
-        return self.list(request, *args, **kwargs)
+        """
+        Get all tenants owned by the authenticated user.
+        """
+        return Tenant.objects.filter(owner_id=self.request.user.id)
 
     def perform_create(self, serializer):
-        serializer.save()
+        """
+        Restrict the number of tenants based on the user's plan.
+        """
+        user = self.request.user
+        tenants = Tenant.objects.filter(owner_id=user.user_id)
+
+        tenant_plan, created = TenantPlan.objects.get_or_create(
+            tenant=tenants.first(),
+            defaults={"plan_name": "Free", "max_users": 1, "max_tenants": 1},
+        )
+
+        if tenants.count() >= tenant_plan.max_tenants:
+            raise ValidationError(
+                {"error": f"Tenant creation limit reached for your current plan {tenants.count()}/{tenant_plan.max_tenants}."}
+            )
+
+        tenant = serializer.save(owner_id=user.user_id)
+
+        if created:
+            TenantPlan.objects.create(
+                tenant=tenant,
+                plan_name="Free",
+                max_users=1,
+                max_tenants=1,
+                custom_roles=False,
+            )
 
 
 class TenantLocationView(viewsets.ModelViewSet):
