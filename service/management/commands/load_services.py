@@ -16,7 +16,7 @@ from . import progress_bar
 from django.conf import settings
 
 # API endpoint to fetch user details
-USER_RETRIEVE_URL = settings.USER_SERVICE_API + "users/retrieve/"
+USER_RETRIEVE_URL = settings.USER_SERVICE_API + "users/filter"
 USER_EMAIL = "ccrowder@capsuleio.com"
 
 
@@ -32,12 +32,12 @@ class Command(BaseCommand):
             Fetch the user ID for the given email.
             """
             try:
-                response = requests.post(
-                    USER_RETRIEVE_URL, json={"email": email}, timeout=10
+                response = requests.get(
+                    USER_RETRIEVE_URL, params={"email": email}, timeout=10
                 )
                 response.raise_for_status()
                 user_data = response.json()
-                return user_data.get("id")
+                return user_data[0].get("id")
             except requests.HTTPError as e:
                 print(f"HTTP error: {e}")
             except requests.ConnectionError:
@@ -112,42 +112,42 @@ class Command(BaseCommand):
         # Define services
         services = [
             {
-                "provider": provider_instances[0],
+                "tenant": provider_instances[0],
                 "name": "Lawn Mowing",
                 "category": "Landscaping",
                 "description": "Mow and edge your lawn to perfection.",
                 "price": 50.00,
             },
             {
-                "provider": provider_instances[0],
+                "tenant": provider_instances[0],
                 "name": "Garden Maintenance",
                 "category": "Landscaping",
                 "description": "Keep your garden neat and healthy.",
                 "price": 80.00,
             },
             {
-                "provider": provider_instances[1],
+                "tenant": provider_instances[1],
                 "name": "Local Moving",
                 "category": "Moving",
                 "description": "Move your belongings within the city.",
                 "price": 150.00,
             },
             {
-                "provider": provider_instances[1],
+                "tenant": provider_instances[1],
                 "name": "Packing Service",
                 "category": "Moving",
                 "description": "Professional packing for a stress-free move.",
                 "price": 75.00,
             },
             {
-                "provider": provider_instances[2],
+                "tenant": provider_instances[2],
                 "name": "Haircut",
                 "category": "Hair Services",
                 "description": "Get a fresh new look.",
                 "price": 30.00,
             },
             {
-                "provider": provider_instances[2],
+                "tenant": provider_instances[2],
                 "name": "Hair Coloring",
                 "category": "Hair Services",
                 "description": "Professional hair coloring services.",
@@ -166,7 +166,7 @@ class Command(BaseCommand):
         self.stdout.write("Populating service locations...")
         for service in service_instances:
             location = next(
-                loc for loc in provider_locations if loc.provider == service.provider
+                loc for loc in provider_locations if loc.provider == service.tenant
             )
             baker.make(
                 ServiceLocation,
