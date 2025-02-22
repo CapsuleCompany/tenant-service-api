@@ -1,8 +1,5 @@
 from rest_framework import serializers
-from .models import (
-    Tenant,
-    TenantLocation,
-)
+from .models import *
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -52,3 +49,9 @@ class TenantLocationSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class TenantPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantPlan
+        fields = '__all__'

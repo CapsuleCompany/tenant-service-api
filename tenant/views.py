@@ -2,11 +2,8 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from .serializers import (
-    TenantSerializer,
-    TenantLocationSerializer,
-)
-from .models import Tenant, TenantPlan
+from .serializers import *
+from .models import *
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 
@@ -23,35 +20,23 @@ class TenantViewSet(viewsets.ModelViewSet):
         """
         Get all tenants owned by the authenticated user.
         """
-        return Tenant.objects.filter(owner_id=self.request.user.id)
+        return Tenant.objects.all()
 
     def perform_create(self, serializer):
         """
-        Restrict the number of tenants based on the user's plan.
+        Restrict tenant creation based on the user's plan.
         """
         user = self.request.user
-        tenants = Tenant.objects.filter(owner_id=user.user_id)
+        tenants = Tenant.objects.all()
 
-        tenant_plan, created = TenantPlan.objects.get_or_create(
-            tenant=tenants.first(),
-            defaults={"plan_name": "Free", "max_users": 1, "max_tenants": 1},
-        )
+        user_plan = TenantPlan.objects.get(name="Free")
 
-        if tenants.count() >= tenant_plan.max_tenants:
+        if tenants.count() >= user_plan.max_tenants:
             raise ValidationError(
-                {"error": f"Tenant creation limit reached for your current plan {tenants.count()}/{tenant_plan.max_tenants}."}
+                {"error": f"Tenant creation limit reached for your current plan ({tenants.count()}/{user_plan.max_tenants})."}
             )
 
-        tenant = serializer.save(owner_id=user.user_id)
-
-        if created:
-            TenantPlan.objects.create(
-                tenant=tenant,
-                plan_name="Free",
-                max_users=1,
-                max_tenants=1,
-                custom_roles=False,
-            )
+        serializer.save(owner_id=user, plan=user_plan)
 
 
 class TenantLocationView(viewsets.ModelViewSet):
@@ -60,7 +45,7 @@ class TenantLocationView(viewsets.ModelViewSet):
     """
 
     serializer_class = TenantLocationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         return TenantLocation.objects.filter(
@@ -70,3 +55,17 @@ class TenantLocationView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         provider = get_object_or_404(Tenant, id=self.kwargs["provider_id"])
         serializer.save(provider=provider)
+
+
+class TenantPlanViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Tenant Plans.
+    """
+    serializer_class = TenantPlanSerializer
+    queryset = TenantPlan.objects.all()
+    permission_classes = [permissions.AllowAny]
+
+    def list(self, request, *args, **kwargs):
+        tenants = self.get_queryset()
+        serializer = self.get_serializer(tenants, many=True)
+        return Response(serializer.data)
