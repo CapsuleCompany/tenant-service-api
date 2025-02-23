@@ -4,10 +4,12 @@ import uuid
 
 
 class TenantPlan(BaseModel):
-    name = models.CharField(max_length=50, help_text="Plan name", unique=True, null=True)
+    name = models.CharField(max_length=50, help_text="Plan name", unique=True)
     max_users = models.IntegerField(default=1)
     max_storage_gb = models.IntegerField(default=10)
-    max_tenants = models.IntegerField(default=2, help_text="Max tenants allowed under this plan")
+    max_tenants = models.IntegerField(
+        default=2, help_text="Max tenants allowed under this plan"
+    )
     custom_roles = models.BooleanField(default=False)
     feature_flags = models.JSONField(
         default=dict, help_text="Custom feature toggles for this plan."

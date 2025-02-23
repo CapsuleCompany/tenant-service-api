@@ -54,4 +54,4 @@ class TenantLocationSerializer(serializers.ModelSerializer):
 class TenantPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantPlan
-        fields = '__all__'
+        fields = "__all__"

@@ -51,20 +51,28 @@ class ServiceOptionSerializer(serializers.ModelSerializer):
         values_data = validated_data.pop("values", [])
         instance.name = validated_data.get("name", instance.name)
         instance.is_required = validated_data.get("is_required", instance.is_required)
-        instance.max_selections = validated_data.get("max_selections", instance.max_selections)
+        instance.max_selections = validated_data.get(
+            "max_selections", instance.max_selections
+        )
         instance.save()
 
         # Handle updating, creating, and deleting option values
         existing_ids = {value.id for value in instance.values.all()}
-        received_ids = {value_data.get("id") for value_data in values_data if "id" in value_data}
+        received_ids = {
+            value_data.get("id") for value_data in values_data if "id" in value_data
+        }
 
         # Delete values not present in the update request
-        ServiceOptionValue.objects.filter(option=instance, id__in=existing_ids - received_ids).delete()
+        ServiceOptionValue.objects.filter(
+            option=instance, id__in=existing_ids - received_ids
+        ).delete()
 
         for value_data in values_data:
             value_id = value_data.get("id", None)
             if value_id:
-                value_instance = ServiceOptionValue.objects.get(id=value_id, option=instance)
+                value_instance = ServiceOptionValue.objects.get(
+                    id=value_id, option=instance
+                )
                 for attr, value in value_data.items():
                     setattr(value_instance, attr, value)
                 value_instance.save()

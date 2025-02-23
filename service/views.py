@@ -97,32 +97,58 @@ class AvailableServicesView(APIView):
         time = request.query_params.get("time", None)
 
         if not latitude or not longitude:
-            return Response({"error": "Latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Latitude and longitude are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             # Step 1: Fetch services in the given radius from location-service
-            location_service_url = f"{settings.LOCATION_SERVICE_URL}/api/locations/services"
-            location_params = {"latitude": latitude, "longitude": longitude, "radius": radius}
-            location_response = requests.get(location_service_url, params=location_params)
+            location_service_url = (
+                f"{settings.LOCATION_SERVICE_URL}/api/locations/services"
+            )
+            location_params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "radius": radius,
+            }
+            location_response = requests.get(
+                location_service_url, params=location_params
+            )
 
             if location_response.status_code != 200:
-                return Response({"error": "Failed to fetch services from location-service."},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {"error": "Failed to fetch services from location-service."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
             services = location_response.json()  # List of services with location info
 
             # Step 2: Filter services based on availability (if date/time provided)
             available_services = []
             if date and time:
-                schedule_service_url = f"{settings.SCHEDULE_SERVICE_URL}/api/schedule/availability"
+                schedule_service_url = (
+                    f"{settings.SCHEDULE_SERVICE_URL}/api/schedule/availability"
+                )
                 for service in services:
-                    schedule_params = {"service_id": service["id"], "date": date, "time": time}
-                    schedule_response = requests.get(schedule_service_url, params=schedule_params)
+                    schedule_params = {
+                        "service_id": service["id"],
+                        "date": date,
+                        "time": time,
+                    }
+                    schedule_response = requests.get(
+                        schedule_service_url, params=schedule_params
+                    )
 
-                    if schedule_response.status_code == 200 and schedule_response.json().get("available"):
+                    if (
+                        schedule_response.status_code == 200
+                        and schedule_response.json().get("available")
+                    ):
                         available_services.append(service)
             else:
-                available_services = services  # If no date/time filter, return all services in range
+                available_services = (
+                    services  # If no date/time filter, return all services in range
+                )
 
             # Step 3: Fetch additional details from tenant-service
             for service in available_services:
@@ -135,4 +161,7 @@ class AvailableServicesView(APIView):
             return Response(available_services, status=status.HTTP_200_OK)
 
         except requests.RequestException as e:
-            return Response({"error": f"Service request failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"Service request failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -95,11 +95,16 @@ class ServiceLocation(BaseModel):
             return {"error": "No external schedule ID provided."}
 
         url = f"{settings.SCHEDULE_SERVICE_URL}/api/availability/{self.external_schedule_id}/"
-        response = requests.get(url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"})
+        response = requests.get(
+            url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"}
+        )
 
         if response.status_code == 200:
             return response.json()
-        return {"error": "Failed to fetch availability.", "status": response.status_code}
+        return {
+            "error": "Failed to fetch availability.",
+            "status": response.status_code,
+        }
 
     def get_address(self):
         """
@@ -109,11 +114,16 @@ class ServiceLocation(BaseModel):
             return {"error": "No external location ID provided."}
 
         url = f"{settings.LOCATION_SERVICE_URL}/api/locations/{self.external_location_id}/"
-        response = requests.get(url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"})
+        response = requests.get(
+            url, headers={"Authorization": f"Bearer {settings.SERVICE_API_KEY}"}
+        )
 
         if response.status_code == 200:
             return response.json()
-        return {"error": "Failed to fetch location details.", "status": response.status_code}
+        return {
+            "error": "Failed to fetch location details.",
+            "status": response.status_code,
+        }
 
 
 class ServiceOption(BaseModel):

@@ -28,7 +28,7 @@ def associate_user_with_tenant(sender, instance, created, **kwargs):
         try:
             response = requests.post(
                 USER_API_URL,
-                json={"tenant_id": str(instance.id), "user": str(instance.user_id)},
+                json={"tenant_id": str(instance.id), "user": str(instance.owner_id)},
                 timeout=10,
             )
 

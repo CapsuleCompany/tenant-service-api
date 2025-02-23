@@ -33,7 +33,9 @@ class TenantViewSet(viewsets.ModelViewSet):
 
         if tenants.count() >= user_plan.max_tenants:
             raise ValidationError(
-                {"error": f"Tenant creation limit reached for your current plan ({tenants.count()}/{user_plan.max_tenants})."}
+                {
+                    "error": f"Tenant creation limit reached for your current plan ({tenants.count()}/{user_plan.max_tenants})."
+                }
             )
 
         serializer.save(owner_id=user, plan=user_plan)
@@ -61,6 +63,7 @@ class TenantPlanViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing Tenant Plans.
     """
+
     serializer_class = TenantPlanSerializer
     queryset = TenantPlan.objects.all()
     permission_classes = [permissions.AllowAny]

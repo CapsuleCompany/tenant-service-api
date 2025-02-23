@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from tenant.models import TenantPlan
 
+
 class Command(BaseCommand):
     help = "Delete all tenant plans"
 
